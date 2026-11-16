@@ -16,7 +16,7 @@ Para lançar uma versão nova, mude `version:` no `pubspec.yaml` (ex.: `1.1.0+1`
 ## O que tem na 1.0.0
 
 - Notas com título, texto e **lista de tarefas** (Enter cria novo item; Enter em item vazio sai da lista)
-- **Desenho à mão livre** (caneta, marca-texto, borracha, desfazer/refazer, modo "só caneta" para S Pen)
+- **Desenho à mão livre** (caneta, marca-texto, borracha, desfazer/refazer)
 - Pastas, **fixar**, **cor da nota**, grade/lista, busca
 - Seleção múltipla (segurar um cartão): fixar, mover, excluir
 - **Lixeira** (apaga sozinha após 30 dias)
