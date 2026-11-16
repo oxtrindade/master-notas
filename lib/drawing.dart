@@ -106,7 +106,6 @@ class _DrawScreenState extends State<DrawScreen> {
   _Tool _tool = _Tool.pen;
   int _color = 0;
   int _size = 1;
-  bool _stylusOnly = false;
 
   double? _aspect; // altura / largura
   double _canvasW = 1;
@@ -123,11 +122,8 @@ class _DrawScreenState extends State<DrawScreen> {
     _redo.clear();
   }
 
-  bool _ignore(PointerEvent e) =>
-      _stylusOnly && e.kind == PointerDeviceKind.touch;
-
   void _down(PointerDownEvent e) {
-    if (_pointer != null || _ignore(e)) return;
+    if (_pointer != null) return;
     _pointer = e.pointer;
     final x = e.localPosition.dx / _canvasW;
     final y = e.localPosition.dy / _canvasW;
@@ -294,17 +290,6 @@ class _DrawScreenState extends State<DrawScreen> {
                       _toolBtn(Icons.cleaning_services_outlined, 'Borracha',
                           _Tool.eraser),
                       const Spacer(),
-                      IconButton(
-                        tooltip: _stylusOnly
-                            ? 'Só caneta (ligado)'
-                            : 'Só caneta (desligado)',
-                        icon: Icon(
-                          Icons.pan_tool_alt_outlined,
-                          color: _stylusOnly ? kAccent : null,
-                        ),
-                        onPressed: () =>
-                            setState(() => _stylusOnly = !_stylusOnly),
-                      ),
                       for (int i = 0; i < 3; i++) _sizeBtn(i),
                     ],
                   ),
