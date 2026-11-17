@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -22,9 +23,11 @@ Future<void> saveBackup(BuildContext context, NotesStore store) async {
         'MasterNotas-backup-${d.year}-${_two(d.month)}-${_two(d.day)}-${_two(d.hour)}${_two(d.minute)}.json';
     final file = File('${dir.path}/$name');
     await file.writeAsString(store.exportJson(), flush: true);
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/json', name: name)],
-      subject: 'Backup Master Notas',
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path, mimeType: 'application/json', name: name)],
+        subject: 'Backup Master Notas',
+      ),
     );
   } catch (e) {
     if (context.mounted) snack(context, 'Não consegui gerar o backup: $e');
@@ -34,22 +37,10 @@ Future<void> saveBackup(BuildContext context, NotesStore store) async {
 /// Escolhe um arquivo de backup (do celular, Drive, OneDrive...) e restaura.
 Future<void> restoreBackup(BuildContext context, NotesStore store) async {
   try {
-    final res = await FilePicker.platform.pickFiles(
-      type: FileType.any,
-      withData: true,
-    );
-    if (res == null || res.files.isEmpty) return;
-    final f = res.files.single;
+    final f = await FilePicker.pickFile();
+    if (f == null) return;
 
-    String text;
-    if (f.bytes != null) {
-      text = utf8.decode(f.bytes!);
-    } else if (f.path != null) {
-      text = await File(f.path!).readAsString();
-    } else {
-      if (context.mounted) snack(context, 'Não consegui ler o arquivo');
-      return;
-    }
+    final text = utf8.decode(await f.readAsBytes());
 
     if (!context.mounted) return;
     final ok = await confirmDialog(
