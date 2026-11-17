@@ -56,6 +56,10 @@ jobs:
           sed -i 's/android:label="[^"]*"/android:label="Master Notas"/' android/app/src/main/AndroidManifest.xml
           if [ -d assets/android-icons ]; then cp -r assets/android-icons/. android/app/src/main/res/; fi
 
+      - name: Instalar código nativo (widget)
+        run: |
+          if [ -f native/setup.sh ]; then bash native/setup.sh; fi
+
       - name: Usar chave de assinatura fixa (para atualizar por cima)
         run: |
           mkdir -p ~/.android
