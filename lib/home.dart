@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
+import 'backup.dart';
 import 'dialogs.dart';
 import 'drawing.dart';
 import 'editor.dart';
@@ -129,32 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _backupCopy() async {
-    await Clipboard.setData(ClipboardData(text: store.exportJson()));
-    if (mounted) {
-      snack(context, 'Backup copiado. Cole em um lugar seguro (ex.: e-mail para você mesmo).');
-    }
-  }
-
-  Future<void> _backupRestore() async {
-    final data = await Clipboard.getData(Clipboard.kTextPlain);
-    final text = data?.text ?? '';
-    if (!mounted) return;
-    if (text.trim().isEmpty) {
-      snack(context, 'Copie o texto do backup primeiro');
-      return;
-    }
-    final ok = await confirmDialog(
-      context,
-      title: 'Restaurar backup?',
-      message: 'Isso substitui todas as notas atuais pelas do backup copiado.',
-      action: 'Restaurar',
-    );
-    if (!ok || !mounted) return;
-    final done = store.importJson(text);
-    snack(context, done ? 'Backup restaurado' : 'O texto copiado não é um backup válido');
-  }
-
   // ------------------------------------------------------------------ build
 
   @override
@@ -230,20 +204,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 builder: (_) => TrashScreen(store: store),
                               ));
                               break;
-                            case 'copy':
-                              _backupCopy();
+                            case 'save':
+                              saveBackup(context, store);
                               break;
                             case 'restore':
-                              _backupRestore();
+                              restoreBackup(context, store);
                               break;
                           }
                         },
                         itemBuilder: (_) => const [
                           PopupMenuItem(value: 'trash', child: Text('Lixeira')),
                           PopupMenuItem(
-                              value: 'copy', child: Text('Copiar backup')),
+                              value: 'save', child: Text('Salvar backup')),
                           PopupMenuItem(
-                              value: 'restore', child: Text('Restaurar backup')),
+                              value: 'restore',
+                              child: Text('Restaurar backup')),
                         ],
                       ),
                     ],
