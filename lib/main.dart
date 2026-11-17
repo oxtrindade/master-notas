@@ -12,10 +12,35 @@ Future<void> main() async {
   runApp(NotesApp(store: store));
 }
 
-class NotesApp extends StatelessWidget {
+class NotesApp extends StatefulWidget {
   final NotesStore store;
 
   const NotesApp({super.key, required this.store});
+
+  @override
+  State<NotesApp> createState() => _NotesAppState();
+}
+
+class _NotesAppState extends State<NotesApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // O widget pode ter marcado itens com o app fechado: relê o arquivo.
+    if (state == AppLifecycleState.resumed) {
+      widget.store.reload();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +53,7 @@ class NotesApp extends StatelessWidget {
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: HomeScreen(store: store),
+      home: HomeScreen(store: widget.store),
     );
   }
 }

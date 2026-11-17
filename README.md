@@ -13,6 +13,13 @@ Bloco de notas para Android inspirado no Samsung Notes, feito em Flutter.
 Obs.: só zips com nome `VERSAO-*.zip` são aplicados. A pasta `.github` e a pasta `ci` nunca são alteradas pelo zip; se o `build.yml` mudar, edite-o à mão no GitHub.
 O número da versão vem do `pubspec.yaml` (linha `version:`).
 
+## Widget de lista de tarefas (1.2.0)
+
+Na tela inicial do celular: segure em um espaço vazio → **Widgets** → **Master Notas** → arraste o widget. Ele pergunta qual nota com lista de tarefas mostrar (só aparecem notas que têm pelo menos um item de lista).
+Tocar em um item marca/desmarca sem abrir o app. Tocar no título abre o app. Se você mudar a nota no app, o widget atualiza sozinho.
+
+O widget é código nativo Android: fica em `native/` e é instalado no projeto pelo workflow (`native/setup.sh`).
+
 ## O que tem na 1.1.0
 
 - Notas com título, texto e **lista de tarefas** (Enter cria novo item; Enter em item vazio sai da lista)

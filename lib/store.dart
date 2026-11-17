@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'models.dart';
@@ -10,6 +11,8 @@ import 'models.dart';
 const int kTrashDays = 30;
 
 class NotesStore extends ChangeNotifier {
+  static const MethodChannel _widgetChannel = MethodChannel('master_notas/widget');
+
   List<Note> notes = [];
   List<Folder> folders = [];
   bool gridView = true;
@@ -37,6 +40,28 @@ class NotesStore extends ChangeNotifier {
     }
     _purgeTrash();
     notifyListeners();
+    _pokeWidget();
+  }
+
+  /// Relê o arquivo (ex.: o widget marcou um item enquanto o app estava fechado).
+  Future<void> reload() async {
+    final f = _file;
+    if (f == null) return;
+    if (_debounce?.isActive ?? false) return; // há alteração ainda não gravada
+    try {
+      if (await f.exists() && await _tryRead(f)) {
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  /// Avisa a parte nativa para redesenhar os widgets da tela inicial.
+  Future<void> _pokeWidget() async {
+    final f = _file;
+    if (f == null) return;
+    try {
+      await _widgetChannel.invokeMethod<void>('refresh', {'path': f.path});
+    } catch (_) {}
   }
 
   Future<bool> _tryRead(File f) async {
@@ -94,6 +119,7 @@ class NotesStore extends ChangeNotifier {
         } catch (_) {}
       }
       await tmp.rename(f.path);
+      _pokeWidget();
     } catch (_) {}
   }
 
@@ -139,7 +165,12 @@ class NotesStore extends ChangeNotifier {
       return;
     }
     if (touch) n.updated = DateTime.now().millisecondsSinceEpoch;
-    if (!notes.any((x) => x.id == n.id)) notes.add(n);
+    final i = notes.indexWhere((x) => x.id == n.id);
+    if (i >= 0) {
+      notes[i] = n;
+    } else {
+      notes.add(n);
+    }
     _scheduleWrite();
     _notify(defer);
   }
