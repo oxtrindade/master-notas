@@ -163,3 +163,89 @@ Future<int?> pickNoteColor(BuildContext context, int current) {
     ),
   );
 }
+
+/// Retorna o número da capa (0 = sem capa) ou null se cancelar.
+Future<int?> pickCover(BuildContext context, int current) {
+  return showModalBottomSheet<int>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Capa da nota',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.5,
+              children: [
+                GestureDetector(
+                  onTap: () => Navigator.pop(ctx, 0),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: current == 0 ? kAccent : cardBorder(ctx),
+                        width: current == 0 ? 3 : 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text('Sem capa'),
+                  ),
+                ),
+                for (int i = 1; i <= kCovers.length; i++)
+                  GestureDetector(
+                    onTap: () => Navigator.pop(ctx, i),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: current == i
+                            ? Border.all(color: kAccent, width: 3)
+                            : null,
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(
+                                current == i ? 11 : 14),
+                            child: coverBanner(i, height: double.infinity)!,
+                          ),
+                          Positioned(
+                            left: 8,
+                            bottom: 6,
+                            child: Text(
+                              kCovers[i - 1].name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                shadows: [
+                                  Shadow(blurRadius: 4, color: Colors.black54),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}

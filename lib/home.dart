@@ -568,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(14),
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: bg,
               borderRadius: BorderRadius.circular(22),
@@ -577,7 +577,25 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: sel ? 2.5 : 1,
               ),
             ),
-            child: content,
+            child: Column(
+              mainAxisSize: grid ? MainAxisSize.max : MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (hasCover(n.cover)) coverBanner(n.cover, height: 38)!,
+                if (grid)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: content,
+                    ),
+                  )
+                else
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: content,
+                  ),
+              ],
+            ),
           ),
           if (_selecting)
             Positioned(

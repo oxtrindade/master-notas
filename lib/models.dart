@@ -96,6 +96,7 @@ class Note {
   String title;
   List<Block> blocks;
   int colorIndex;
+  int cover; // 0 = sem capa
   bool pinned;
   String? folderId;
   int created;
@@ -107,6 +108,7 @@ class Note {
     this.title = '',
     List<Block>? blocks,
     this.colorIndex = 0,
+    this.cover = 0,
     this.pinned = false,
     this.folderId,
     int? created,
@@ -162,6 +164,7 @@ class Note {
         'title': title,
         'blocks': blocks.map((b) => b.toJson()).toList(),
         'color': colorIndex,
+        'cv': cover,
         'pin': pinned,
         'folder': folderId,
         'created': created,
@@ -178,6 +181,7 @@ class Note {
       title: (j['title'] as String?) ?? '',
       blocks: bl.isEmpty ? <Block>[Block(type: BlockType.text)] : bl,
       colorIndex: (j['color'] as int?) ?? 0,
+      cover: (j['cv'] as int?) ?? 0,
       pinned: j['pin'] == true,
       folderId: j['folder'] as String?,
       created: j['created'] as int?,

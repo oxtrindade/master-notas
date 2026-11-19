@@ -245,6 +245,14 @@ class _EditorScreenState extends State<EditorScreen> {
     }
   }
 
+  Future<void> _pickCover() async {
+    final i = await pickCover(context, note.cover);
+    if (i != null && mounted) {
+      setState(() => note.cover = i);
+      _changed();
+    }
+  }
+
   Future<void> _pickFolder() async {
     final r = await pickFolder(context, widget.store, current: note.folderId);
     if (r != null && mounted) {
@@ -308,6 +316,9 @@ class _EditorScreenState extends State<EditorScreen> {
                 case 'color':
                   _pickColor();
                   break;
+                case 'cover':
+                  _pickCover();
+                  break;
                 case 'delete':
                   _delete();
                   break;
@@ -317,6 +328,7 @@ class _EditorScreenState extends State<EditorScreen> {
               PopupMenuItem(value: 'copy', child: Text('Copiar texto')),
               PopupMenuItem(value: 'folder', child: Text('Mover para pasta')),
               PopupMenuItem(value: 'color', child: Text('Cor da nota')),
+              PopupMenuItem(value: 'cover', child: Text('Capa da nota')),
               PopupMenuItem(value: 'delete', child: Text('Excluir')),
             ],
           ),
@@ -327,6 +339,18 @@ class _EditorScreenState extends State<EditorScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (hasCover(note.cover))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 14),
+                child: GestureDetector(
+                  onTap: _pickCover,
+                  child: coverBanner(
+                    note.cover,
+                    height: 110,
+                    radius: BorderRadius.circular(18),
+                  ),
+                ),
+              ),
             TextField(
               controller: _title,
               focusNode: _titleFocus,
@@ -555,6 +579,11 @@ class _EditorScreenState extends State<EditorScreen> {
                 tooltip: 'Cor da nota',
                 icon: const Icon(Icons.palette_outlined),
                 onPressed: _pickColor,
+              ),
+              IconButton(
+                tooltip: 'Capa',
+                icon: const Icon(Icons.wallpaper_outlined),
+                onPressed: _pickCover,
               ),
               IconButton(
                 tooltip: 'Pasta',

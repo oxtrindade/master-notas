@@ -39,3 +39,48 @@ Color noteBg(BuildContext context, int index) {
 
 Color cardBorder(BuildContext context) =>
     isDark(context) ? const Color(0x1FFFFFFF) : const Color(0x14000000);
+
+// ------------------------------------------------------------------ capas
+
+class CoverStyle {
+  final String name;
+  final Color a;
+  final Color b;
+  const CoverStyle(this.name, this.a, this.b);
+}
+
+/// Índice 0 do campo `cover` da nota = sem capa; 1..N = kCovers[i - 1].
+const List<CoverStyle> kCovers = [
+  CoverStyle('Oceano', Color(0xFF2193B0), Color(0xFF6DD5ED)),
+  CoverStyle('Pôr do sol', Color(0xFFFF512F), Color(0xFFF09819)),
+  CoverStyle('Floresta', Color(0xFF11998E), Color(0xFF38EF7D)),
+  CoverStyle('Lavanda', Color(0xFF8E2DE2), Color(0xFF4A00E0)),
+  CoverStyle('Rosa', Color(0xFFEE9CA7), Color(0xFFFFB6C1)),
+  CoverStyle('Noite', Color(0xFF232526), Color(0xFF485563)),
+  CoverStyle('Céu', Color(0xFF4568DC), Color(0xFFB06AB3)),
+  CoverStyle('Menta', Color(0xFF00B09B), Color(0xFF96C93D)),
+  CoverStyle('Vinho', Color(0xFF642B73), Color(0xFFC6426E)),
+  CoverStyle('Areia', Color(0xFFD7BE82), Color(0xFFF3E7C8)),
+  CoverStyle('Grafite', Color(0xFF485563), Color(0xFF29323C)),
+  CoverStyle('Cereja', Color(0xFFEB3349), Color(0xFFF45C43)),
+];
+
+bool hasCover(int cover) => cover > 0 && cover <= kCovers.length;
+
+/// Faixa colorida da capa. Retorna null se a nota não tem capa.
+Widget? coverBanner(int cover, {double height = 44, BorderRadius? radius}) {
+  if (!hasCover(cover)) return null;
+  final c = kCovers[cover - 1];
+  return Container(
+    height: height,
+    width: double.infinity,
+    decoration: BoxDecoration(
+      borderRadius: radius,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [c.a, c.b],
+      ),
+    ),
+  );
+}

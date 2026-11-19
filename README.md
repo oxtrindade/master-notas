@@ -13,6 +13,10 @@ Bloco de notas para Android inspirado no Samsung Notes, feito em Flutter.
 Obs.: só zips com nome `VERSAO-*.zip` são aplicados. A pasta `.github` e a pasta `ci` nunca são alteradas pelo zip; se o `build.yml` mudar, edite-o à mão no GitHub.
 O número da versão vem do `pubspec.yaml` (linha `version:`).
 
+## Capas (1.3.0)
+
+Dentro da nota: menu ⋮ → **Capa da nota** (ou o ícone de quadro na barra de baixo). Há 12 capas em degradê. A capa aparece como faixa colorida no topo do cartão na lista e no topo da nota.
+
 ## Widget de lista de tarefas (1.2.0)
 
 Na tela inicial do celular: segure em um espaço vazio → **Widgets** → **Master Notas** → arraste o widget. Ele pergunta qual nota com lista de tarefas mostrar (só aparecem notas que têm pelo menos um item de lista).
