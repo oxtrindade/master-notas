@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 
-import 'backup.dart';
 import 'dialogs.dart';
 import 'drawing.dart';
 import 'editor.dart';
+import 'folder_backup.dart';
 import 'models.dart';
+import 'settings_screen.dart';
 import 'store.dart';
+import 'sync.dart';
 import 'theme.dart';
 import 'trash.dart';
 import 'util.dart';
 
 class HomeScreen extends StatefulWidget {
   final NotesStore store;
+  final DriveSync sync;
+  final FolderBackup folder;
 
-  const HomeScreen({super.key, required this.store});
+  const HomeScreen({
+    super.key,
+    required this.store,
+    required this.sync,
+    required this.folder,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -204,21 +213,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                 builder: (_) => TrashScreen(store: store),
                               ));
                               break;
-                            case 'save':
-                              saveBackup(context, store);
-                              break;
-                            case 'restore':
-                              restoreBackup(context, store);
+                            case 'settings':
+                              Navigator.of(context).push(MaterialPageRoute<void>(
+                                builder: (_) => SettingsScreen(
+                                  store: store,
+                                  sync: widget.sync,
+                                  folder: widget.folder,
+                                ),
+                              ));
                               break;
                           }
                         },
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'trash', child: Text('Lixeira')),
-                          PopupMenuItem(
-                              value: 'save', child: Text('Salvar backup')),
-                          PopupMenuItem(
-                              value: 'restore',
-                              child: Text('Restaurar backup')),
+                        itemBuilder: (_) => [
+                          const PopupMenuItem(
+                              value: 'settings', child: Text('Configurações')),
+                          const PopupMenuItem(value: 'trash', child: Text('Lixeira')),
                         ],
                       ),
                     ],

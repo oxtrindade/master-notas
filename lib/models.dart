@@ -82,13 +82,19 @@ class Block {
 class Folder {
   String id;
   String name;
+  int m; // última modificação (ms), usada na sincronização
 
-  Folder({String? id, required this.name}) : id = id ?? newId();
+  Folder({String? id, required this.name, int? m})
+      : id = id ?? newId(),
+        m = m ?? DateTime.now().millisecondsSinceEpoch;
 
-  Map<String, dynamic> toJson() => {'id': id, 'n': name};
+  Map<String, dynamic> toJson() => {'id': id, 'n': name, 'm': m};
 
-  factory Folder.fromJson(Map<String, dynamic> j) =>
-      Folder(id: j['id'] as String?, name: (j['n'] as String?) ?? 'Pasta');
+  factory Folder.fromJson(Map<String, dynamic> j) => Folder(
+        id: j['id'] as String?,
+        name: (j['n'] as String?) ?? 'Pasta',
+        m: (j['m'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class Note {
@@ -101,6 +107,7 @@ class Note {
   String? folderId;
   int created;
   int updated;
+  int m; // última modificação de qualquer tipo (fixar, mover, lixeira...)
   int? deletedAt;
 
   Note({
@@ -113,11 +120,16 @@ class Note {
     this.folderId,
     int? created,
     int? updated,
+    int? m,
     this.deletedAt,
   })  : id = id ?? newId(),
         blocks = blocks ?? <Block>[Block(type: BlockType.text)],
         created = created ?? DateTime.now().millisecondsSinceEpoch,
-        updated = updated ?? DateTime.now().millisecondsSinceEpoch;
+        updated = updated ?? DateTime.now().millisecondsSinceEpoch,
+        m = m ?? updated ?? DateTime.now().millisecondsSinceEpoch;
+
+  /// Versão da nota para a sincronização: o que for mais recente.
+  int get ver => m > updated ? m : updated;
 
   bool get isEmpty =>
       title.trim().isEmpty &&
@@ -169,6 +181,7 @@ class Note {
         'folder': folderId,
         'created': created,
         'updated': updated,
+        'm': m,
         'deleted': deletedAt,
       };
 
@@ -184,9 +197,10 @@ class Note {
       cover: (j['cv'] as int?) ?? 0,
       pinned: j['pin'] == true,
       folderId: j['folder'] as String?,
-      created: j['created'] as int?,
-      updated: j['updated'] as int?,
-      deletedAt: j['deleted'] as int?,
+      created: (j['created'] as num?)?.toInt(),
+      updated: (j['updated'] as num?)?.toInt(),
+      m: (j['m'] as num?)?.toInt(),
+      deletedAt: (j['deleted'] as num?)?.toInt(),
     );
   }
 }

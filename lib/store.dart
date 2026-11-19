@@ -18,8 +18,19 @@ class NotesStore extends ChangeNotifier {
   bool gridView = true;
   String? currentFolder; // null = todas as notas
 
+  /// Notas/pastas apagadas de vez: id -> quando (ms). Evita que voltem da nuvem.
+  Map<String, int> tombs = {};
+
+  /// Nota aberta no editor agora (a sincronização não troca essa).
+  String? editingId;
+
+  /// Chamado depois de gravar o arquivo local (usado para sincronizar).
+  VoidCallback? onLocalChange;
+
   File? _file;
   Timer? _debounce;
+
+  int get _now => DateTime.now().millisecondsSinceEpoch;
 
   // ---------------------------------------------------------------- carregar
 
@@ -82,6 +93,13 @@ class NotesStore extends ChangeNotifier {
         .map<Note>((e) => Note.fromJson(e as Map<String, dynamic>))
         .toList();
     gridView = data['grid'] != false;
+    tombs = {};
+    final rawTombs = data['tombs'];
+    if (rawTombs is Map) {
+      rawTombs.forEach((k, v) {
+        if (v is num) tombs[k as String] = v.toInt();
+      });
+    }
   }
 
   void _purgeTrash() {
@@ -89,7 +107,18 @@ class NotesStore extends ChangeNotifier {
         .subtract(const Duration(days: kTrashDays))
         .millisecondsSinceEpoch;
     final before = notes.length;
-    notes.removeWhere((n) => n.deletedAt != null && n.deletedAt! < limit);
+    final old = notes
+        .where((n) => n.deletedAt != null && n.deletedAt! < limit)
+        .map((n) => n.id)
+        .toList();
+    for (final id in old) {
+      tombs[id] = _now;
+    }
+    notes.removeWhere((n) => old.contains(n.id));
+    // esquece registros muito antigos
+    final tombLimit =
+        DateTime.now().subtract(const Duration(days: 180)).millisecondsSinceEpoch;
+    tombs.removeWhere((_, ts) => ts < tombLimit);
     if (notes.length != before) _scheduleWrite();
   }
 
@@ -100,7 +129,122 @@ class NotesStore extends ChangeNotifier {
         'grid': gridView,
         'folders': folders.map((f) => f.toJson()).toList(),
         'notes': notes.map((n) => n.toJson()).toList(),
+        'tombs': tombs,
       };
+
+  /// Conteúdo que vai para a nuvem (ordem fixa, sem preferências do aparelho).
+  Map<String, dynamic> syncJson() {
+    final ns = notes.map((n) => n.toJson()).toList();
+    ns.sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+    final fs = folders.map((f) => f.toJson()).toList();
+    fs.sort((a, b) => (a['id'] as String).compareTo(b['id'] as String));
+    final keys = tombs.keys.toList()..sort();
+    return {
+      'v': 1,
+      'notes': ns,
+      'folders': fs,
+      'tombs': {for (final k in keys) k: tombs[k]},
+    };
+  }
+
+  /// Junta o conteúdo da nuvem com o local. Vale a versão mais recente de cada
+  /// nota. Retorna true se algo mudou aqui.
+  bool mergeFrom(Map<String, dynamic> remote) {
+    var changed = false;
+
+    // 1) registros de apagados
+    final rawTombs = remote['tombs'];
+    if (rawTombs is Map) {
+      rawTombs.forEach((k, v) {
+        if (v is! num) return;
+        final id = k as String;
+        final ts = v.toInt();
+        final prev = tombs[id];
+        if (prev == null || ts > prev) {
+          tombs[id] = ts;
+          changed = true;
+        }
+      });
+    }
+
+    // 2) notas
+    final rawNotes = remote['notes'];
+    if (rawNotes is List) {
+      for (final raw in rawNotes) {
+        if (raw is! Map) continue;
+        Note? parsed;
+        try {
+          parsed = Note.fromJson(Map<String, dynamic>.from(raw));
+        } catch (_) {}
+        if (parsed == null) continue;
+        final r = parsed;
+        if (r.id == editingId) continue;
+        final t = tombs[r.id];
+        if (t != null && t >= r.ver) continue; // apagada depois da última edição
+        if (t != null) {
+          tombs.remove(r.id); // editada depois de apagada: volta
+          changed = true;
+        }
+        final i = notes.indexWhere((x) => x.id == r.id);
+        if (i < 0) {
+          notes.add(r);
+          changed = true;
+        } else if (r.ver > notes[i].ver) {
+          notes[i] = r;
+          changed = true;
+        }
+      }
+    }
+    final before = notes.length;
+    notes.removeWhere((n) {
+      final t = tombs[n.id];
+      return t != null && t >= n.ver && n.id != editingId;
+    });
+    if (notes.length != before) changed = true;
+
+    // 3) pastas
+    final rawFolders = remote['folders'];
+    if (rawFolders is List) {
+      for (final raw in rawFolders) {
+        if (raw is! Map) continue;
+        Folder? parsed;
+        try {
+          parsed = Folder.fromJson(Map<String, dynamic>.from(raw));
+        } catch (_) {}
+        if (parsed == null) continue;
+        final r = parsed;
+        final t = tombs[r.id];
+        if (t != null && t >= r.m) continue;
+        if (t != null) {
+          tombs.remove(r.id);
+          changed = true;
+        }
+        final i = folders.indexWhere((x) => x.id == r.id);
+        if (i < 0) {
+          folders.add(r);
+          changed = true;
+        } else if (r.m > folders[i].m) {
+          folders[i] = r;
+          changed = true;
+        }
+      }
+    }
+    final beforeF = folders.length;
+    folders.removeWhere((f) {
+      final t = tombs[f.id];
+      return t != null && t >= f.m;
+    });
+    if (folders.length != beforeF) changed = true;
+    if (currentFolder != null && !folders.any((f) => f.id == currentFolder)) {
+      currentFolder = null;
+    }
+
+    if (changed) {
+      _scheduleWrite();
+      notifyListeners();
+    }
+    return changed;
+  }
 
   void _scheduleWrite() {
     _debounce?.cancel();
@@ -120,6 +264,7 @@ class NotesStore extends ChangeNotifier {
       }
       await tmp.rename(f.path);
       _pokeWidget();
+      onLocalChange?.call();
     } catch (_) {}
   }
 
@@ -159,12 +304,14 @@ class NotesStore extends ChangeNotifier {
       final removed = notes.any((x) => x.id == n.id);
       notes.removeWhere((x) => x.id == n.id);
       if (removed) {
+        tombs[n.id] = _now;
         _scheduleWrite();
         _notify(defer);
       }
       return;
     }
-    if (touch) n.updated = DateTime.now().millisecondsSinceEpoch;
+    if (touch) n.updated = _now;
+    n.m = _now;
     final i = notes.indexWhere((x) => x.id == n.id);
     if (i >= 0) {
       notes[i] = n;
@@ -177,9 +324,12 @@ class NotesStore extends ChangeNotifier {
 
   void trashNotes(Iterable<String> ids) {
     final set = ids.toSet();
-    final now = DateTime.now().millisecondsSinceEpoch;
+    final now = _now;
     for (final n in notes) {
-      if (set.contains(n.id)) n.deletedAt = now;
+      if (set.contains(n.id)) {
+        n.deletedAt = now;
+        n.m = now;
+      }
     }
     _scheduleWrite();
     notifyListeners();
@@ -188,7 +338,10 @@ class NotesStore extends ChangeNotifier {
   void restoreNotes(Iterable<String> ids) {
     final set = ids.toSet();
     for (final n in notes) {
-      if (set.contains(n.id)) n.deletedAt = null;
+      if (set.contains(n.id)) {
+        n.deletedAt = null;
+        n.m = _now;
+      }
     }
     _scheduleWrite();
     notifyListeners();
@@ -196,11 +349,15 @@ class NotesStore extends ChangeNotifier {
 
   void deleteForever(String id) {
     notes.removeWhere((n) => n.id == id);
+    tombs[id] = _now;
     _scheduleWrite();
     notifyListeners();
   }
 
   void emptyTrash() {
+    for (final n in notes.where((n) => n.deletedAt != null)) {
+      tombs[n.id] = _now;
+    }
     notes.removeWhere((n) => n.deletedAt != null);
     _scheduleWrite();
     notifyListeners();
@@ -209,7 +366,10 @@ class NotesStore extends ChangeNotifier {
   void setPinned(Iterable<String> ids, bool pinned) {
     final set = ids.toSet();
     for (final n in notes) {
-      if (set.contains(n.id)) n.pinned = pinned;
+      if (set.contains(n.id)) {
+        n.pinned = pinned;
+        n.m = _now;
+      }
     }
     _scheduleWrite();
     notifyListeners();
@@ -218,7 +378,10 @@ class NotesStore extends ChangeNotifier {
   void moveNotes(Iterable<String> ids, String? folderId) {
     final set = ids.toSet();
     for (final n in notes) {
-      if (set.contains(n.id)) n.folderId = folderId;
+      if (set.contains(n.id)) {
+        n.folderId = folderId;
+        n.m = _now;
+      }
     }
     _scheduleWrite();
     notifyListeners();
@@ -244,7 +407,10 @@ class NotesStore extends ChangeNotifier {
 
   void renameFolder(String id, String name) {
     for (final f in folders) {
-      if (f.id == id) f.name = name;
+      if (f.id == id) {
+        f.name = name;
+        f.m = _now;
+      }
     }
     _scheduleWrite();
     notifyListeners();
@@ -252,8 +418,12 @@ class NotesStore extends ChangeNotifier {
 
   void deleteFolder(String id) {
     folders.removeWhere((f) => f.id == id);
+    tombs[id] = _now;
     for (final n in notes) {
-      if (n.folderId == id) n.folderId = null;
+      if (n.folderId == id) {
+        n.folderId = null;
+        n.m = _now;
+      }
     }
     if (currentFolder == id) currentFolder = null;
     _scheduleWrite();

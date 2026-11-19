@@ -13,6 +13,17 @@ Bloco de notas para Android inspirado no Samsung Notes, feito em Flutter.
 Obs.: só zips com nome `VERSAO-*.zip` são aplicados. A pasta `.github` e a pasta `ci` nunca são alteradas pelo zip; se o `build.yml` mudar, edite-o à mão no GitHub.
 O número da versão vem do `pubspec.yaml` (linha `version:`).
 
+## Configurações e backup em pasta (1.5.0)
+
+Menu ⋮ → **Configurações** (estilo Samsung Notes): backup em pasta, Google Drive, salvar/restaurar backup, grade, lixeira.
+**Backup em pasta**: escolha uma pasta no seletor do Android (uma vez só, pode ser dentro do Google Drive). O app grava sozinho `MasterNotas-backup.json` nela a cada alteração. Não precisa de login nem de permissão extra.
+
+## Google Drive (1.4.0)
+
+Menu ⋮ → **Google Drive**: login com a conta Google e sincronização automática das notas entre aparelhos (pasta privada do app no Drive).
+Precisa criar um projeto grátis no Google Cloud uma vez só: veja `docs/google-drive.md`.
+Requer a permissão de internet, instalada pelo `native/setup.sh` (passo "Instalar código nativo" do `build.yml`).
+
 ## Capas (1.3.0)
 
 Dentro da nota: menu ⋮ → **Capa da nota** (ou o ícone de quadro na barra de baixo). Há 12 capas em degradê. A capa aparece como faixa colorida no topo do cartão na lista e no topo da nota.

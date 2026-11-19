@@ -41,6 +41,7 @@ class _EditorScreenState extends State<EditorScreen> {
   void initState() {
     super.initState();
     note = widget.note;
+    widget.store.editingId = note.id;
     if (note.blocks.isEmpty) note.blocks.add(Block(type: BlockType.text));
     _title = TextEditingController(text: note.title);
     if (widget.isNew) {
@@ -53,6 +54,7 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    if (widget.store.editingId == note.id) widget.store.editingId = null;
     if (_dirty && !_trashed) {
       widget.store.saveNote(note, defer: true);
     }

@@ -1,21 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'folder_backup.dart';
 import 'home.dart';
 import 'store.dart';
+import 'sync.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final store = NotesStore();
   await store.load();
-  runApp(NotesApp(store: store));
+  final sync = DriveSync(store);
+  await sync.load();
+  final folder = FolderBackup(store);
+  await folder.load();
+  store.onLocalChange = () {
+    sync.scheduleSync();
+    folder.scheduleSave();
+  };
+  sync.scheduleSync(delay: const Duration(seconds: 3));
+  runApp(NotesApp(store: store, sync: sync, folder: folder));
 }
 
 class NotesApp extends StatefulWidget {
   final NotesStore store;
+  final DriveSync sync;
+  final FolderBackup folder;
 
-  const NotesApp({super.key, required this.store});
+  const NotesApp({
+    super.key,
+    required this.store,
+    required this.sync,
+    required this.folder,
+  });
 
   @override
   State<NotesApp> createState() => _NotesAppState();
@@ -39,6 +57,7 @@ class _NotesAppState extends State<NotesApp> with WidgetsBindingObserver {
     // O widget pode ter marcado itens com o app fechado: relê o arquivo.
     if (state == AppLifecycleState.resumed) {
       widget.store.reload();
+      widget.sync.scheduleSync(delay: const Duration(seconds: 1));
     }
   }
 
@@ -53,7 +72,11 @@ class _NotesAppState extends State<NotesApp> with WidgetsBindingObserver {
       locale: const Locale('pt', 'BR'),
       supportedLocales: const [Locale('pt', 'BR')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: HomeScreen(store: widget.store),
+      home: HomeScreen(
+        store: widget.store,
+        sync: widget.sync,
+        folder: widget.folder,
+      ),
     );
   }
 }
