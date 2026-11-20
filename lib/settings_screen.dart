@@ -9,7 +9,7 @@ import 'sync_screen.dart';
 import 'trash.dart';
 import 'util.dart';
 
-const String kAppVersion = '1.5.0';
+const String kAppVersion = '1.5.1';
 
 /// Tela de configurações no estilo do Samsung Notes (One UI):
 /// fundo cinza, grupos brancos de cantos bem arredondados.
